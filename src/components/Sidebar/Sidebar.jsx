@@ -4,7 +4,6 @@ import styled, { css, createGlobalStyle } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import logo from '../../assets/logo.png';
 
-
 const themeVars = {
     light: {
         bg: 'var(--color-sidebar-background-light-default)',
@@ -50,37 +49,29 @@ const Sidebar = ({ color = 'light' }) => {
     const [activePath, setActivePath] = useState('/');
 
     const asideRef = useRef(null);
-    const edgeBtnRef = useRef(null);
 
     useEffect(() => setTheme(color), [color]);
-
-
     const t = useMemo(() => themeVars[theme], [theme]);
+
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
 
     const goToRoute = (path) => {
         setActivePath(path);
-        setIsOpened(false); // закрыть панель при переходе
-        console.log(`going to "${path}"`);
     };
 
-    const toggleSidebar = () => setIsOpened(v => !v);
-    const toggleTheme = () => setTheme(v => (v === 'light' ? 'dark' : 'light'));
+    const toggleSidebar = () => setIsOpened((v) => !v);
+    const toggleTheme = () => setTheme((v) => (v === 'light' ? 'dark' : 'light'));
 
     useEffect(() => {
         const onDown = (e) => {
-            if (!isOpened) return;
             const aside = asideRef.current;
-            const edgeBtn = edgeBtnRef.current;
             if (!aside) return;
+            if (!isOpened) return;
             if (aside.contains(e.target)) return;
-            if (edgeBtn && edgeBtn.contains(e.target)) return;
-
             setIsOpened(false);
         };
-
         document.addEventListener('mousedown', onDown);
         return () => document.removeEventListener('mousedown', onDown);
     }, [isOpened]);
@@ -88,21 +79,21 @@ const Sidebar = ({ color = 'light' }) => {
     return (
         <>
             <GlobalTheme $t={t} />
-
-            {!isOpened && (
-                <EdgeButton ref={edgeBtnRef} type="button" $t={t} onClick={toggleSidebar} aria-label="Открыть меню">
-                    <FontAwesomeIcon icon="bars" />
-                </EdgeButton>
-            )}
-
-            <Aside ref={asideRef} $t={t} $opened={isOpened}>
-                <Top>
+            <Aside ref={asideRef} $t={t} $opened={isOpened} role="navigation" aria-label="Sidebar">
+                <Top $opened={isOpened}>
                     <Logo $t={t} $opened={isOpened}>
                         <img src={logo} alt="Logo" />
                         <span className="label">TensorFlow</span>
                     </Logo>
 
-                    <IconBtn type="button" $t={t} onClick={toggleSidebar} title={isOpened ? 'Свернуть' : 'Развернуть'}>
+                    <IconBtn
+                        type="button"
+                        $t={t}
+                        $opened={isOpened}
+                        onClick={toggleSidebar}
+                        aria-label={isOpened ? 'Свернуть' : 'Развернуть'}
+                        aria-expanded={isOpened}
+                    >
                         <FontAwesomeIcon icon={isOpened ? 'angle-left' : 'angle-right'} />
                     </IconBtn>
                 </Top>
@@ -144,7 +135,9 @@ const Sidebar = ({ color = 'light' }) => {
 
                     <Controls>
                         <SmallBtn type="button" $t={t} $opened={isOpened} onClick={toggleTheme} title="Переключить тему">
-                            <FontAwesomeIcon icon="sun" />
+              <span className="icon">
+                <FontAwesomeIcon icon={theme === 'light' ? 'sun' : 'moon'} />
+              </span>
                             <span className="label">{theme === 'light' ? 'Light' : 'Dark'}</span>
                         </SmallBtn>
                     </Controls>
@@ -154,10 +147,7 @@ const Sidebar = ({ color = 'light' }) => {
     );
 };
 
-Sidebar.propTypes = {
-    color: PropTypes.string,
-};
-
+Sidebar.propTypes = { color: PropTypes.string };
 export default Sidebar;
 
 
@@ -169,28 +159,29 @@ const GlobalTheme = createGlobalStyle`
     }
 `;
 
+
 const Aside = styled.aside`
-  width: ${({ $opened }) => ($opened ? '260px' : '0px')};
-  background: ${({ $t }) => $t.bg};
-  color: ${({ $t }) => $t.text};
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: ${({ $opened }) => ($opened ? '12px' : '0')};
-  box-sizing: border-box;
-  transition: width 220ms ease, padding 220ms ease;
-    
-  pointer-events: ${({ $opened }) => ($opened ? 'auto' : 'none')};
-  overflow: hidden;
+    width: ${({ $opened }) => ($opened ? '260px' : '72px')};
+    background: ${({ $t }) => $t.bg};
+    color: ${({ $t }) => $t.text};
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 12px;
+    box-sizing: border-box;
+    transition: width 220ms ease;
+    overflow: hidden;
 `;
 
 const Top = styled.div`
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
-    justify-content: space-between;
+    padding-right: ${({ $opened }) => ($opened ? '0' : '32px')};
+    min-height: 36px;
 `;
 
 const Logo = styled.div`
@@ -198,100 +189,114 @@ const Logo = styled.div`
     align-items: center;
     gap: 10px;
 
-    img {
-        width: 28px;
-        height: 28px;
-        display: block;
-    }
+    img { width: 28px; height: 28px; display: block; }
 
     .label {
         color: ${({ $t }) => $t.logo};
         font-weight: 700;
         white-space: nowrap;
         opacity: ${({ $opened }) => ($opened ? 1 : 0)};
+        max-width: ${({ $opened }) => ($opened ? '200px' : '0px')};
         transform: translateX(${({ $opened }) => ($opened ? '0' : '-4px')});
-        transition: opacity 160ms ease, transform 160ms ease;
+        transition: opacity 160ms ease, transform 160ms ease, max-width 160ms ease;
+        overflow: hidden;
         pointer-events: ${({ $opened }) => ($opened ? 'auto' : 'none')};
     }
 `;
 
 const IconBtn = styled.button`
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
     border: none;
     background: ${({ $t }) => $t.btnBg};
     color: inherit;
-    width: 36px;
-    height: 32px;
-    border-radius: 8px;
+    width: ${({ $opened }) => ($opened ? '28px' : '28px')};
+    height: ${({ $opened }) => ($opened ? '32px' : '28px')};
+    border-radius: 999px;
     display: grid;
     place-items: center;
     cursor: pointer;
     transition: background 150ms ease, transform 150ms ease;
-
-    &:hover {
-        background: ${({ $t }) => $t.btnBgActive};
-    }
-    &:active {
-        transform: scale(0.98);
-    }
+    &:hover { background: ${({ $t }) => $t.btnBgActive}; }
+    &:active { transform: translateY(-50%) scale(0.98); }
 `;
 
 const Nav = styled.nav`
-  margin-top: 10px;
-  display: grid;
-  gap: 6px;
-  overflow-y: auto;
-  padding-right: 4px;
+    margin-top: 10px;
+    display: grid;
+    gap: 6px;
+    overflow-y: auto;
+    padding-right: 4px;
 `;
 
 const sharedItem = css`
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  align-items: center;
-  gap: 10px;
-
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-
-  .icon {
-    font-size: 18px;
-    line-height: 1;
+    position: relative;
     display: grid;
-    place-items: center;
-  }
+    grid-template-columns: ${({ $opened }) => ($opened ? '24px 1fr' : '1fr')};
+    justify-items: ${({ $opened }) => ($opened ? 'stretch' : 'center')};
+    align-items: center;
+    gap: ${({ $opened }) => ($opened ? '10px' : '0')};
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    overflow: hidden;
 
-  .label {
-    white-space: nowrap;
-    opacity: ${({ $opened }) => ($opened ? 1 : 0)};
-    transform: translateX(${({ $opened }) => ($opened ? '0' : '-4px')});
-    transition: opacity 160ms ease, transform 160ms ease;
-    pointer-events: ${({ $opened }) => ($opened ? 'auto' : 'none')};
-  }
+    &::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        left: 6px;      
+        right: 6px;
+        border-radius: 12px;
+        background: transparent;
+        opacity: 0;
+        transition: opacity 150ms ease, background 150ms ease;
+        z-index: 0;
+    }
 
-  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+    .icon {
+        font-size: 18px;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        z-index: 1; 
+    }
 
-  &:hover {
-    background: ${({ $t }) => $t.hover};
-    color: ${({ $t }) => $t.textHover};
-  }
+    .label {
+        z-index: 1;
+        white-space: nowrap;
+        opacity: ${({ $opened }) => ($opened ? 1 : 0)};
+        max-width: ${({ $opened }) => ($opened ? '500px' : '0px')};
+        transform: translateX(${({ $opened }) => ($opened ? '0' : '-4px')});
+        transition: opacity 160ms ease, transform 160ms ease, max-width 160ms ease;
+        overflow: hidden;
+        pointer-events: ${({ $opened }) => ($opened ? 'auto' : 'none')};
+    }
 
-  ${({ $active, $t }) =>
-    $active &&
-    css`
-      background: ${$t.activeBg};
+    &:hover::before {
+        background: ${({ $t }) => $t.hover};
+        opacity: 1;
+    }
+
+    ${({ $active, $t }) =>
+            $active &&
+            css`
+      &::before { background: ${$t.activeBg}; opacity: 1; }
       color: ${$t.textActive};
       font-weight: 600;
     `}
 `;
 
-const NavItem = styled.button`
-    ${sharedItem}
-`;
+const NavItem = styled.button`${sharedItem}`;
 
 const Bottom = styled.div`
     display: grid;
@@ -306,32 +311,7 @@ const Controls = styled.div`
 `;
 
 const SmallBtn = styled.button`
-  ${sharedItem};
-  grid-template-columns: 20px 1fr;
-  padding: 8px 10px;
-  background: ${({ $t }) => $t.btnBg};
-
-  &:hover {
-    background: ${({ $t }) => $t.btnBgActive};
-  }
-`;
-
-const EdgeButton = styled.button`
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 0;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  background: ${({ $t }) => $t.btnBg};
-  color: ${({ $t }) => $t.text};
-  transition: background 150ms ease, transform 150ms ease;
-
-  &:hover { background: ${({ $t }) => $t.btnBgActive}; }
-  &:active { transform: scale(0.98); }
+    ${sharedItem};
+    height: 40px;
+    .icon { justify-self: center; }
 `;
