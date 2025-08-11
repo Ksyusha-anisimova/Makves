@@ -72,8 +72,8 @@ const Sidebar = ({ color = 'light' }) => {
             if (aside.contains(e.target)) return;
             setIsOpened(false);
         };
-        document.addEventListener('mousedown', onDown);
-        return () => document.removeEventListener('mousedown', onDown);
+        document.addEventListener('pointerdown', onDown);
+        return () => document.removeEventListener('pointerdown', onDown);
     }, [isOpened]);
 
     return (
